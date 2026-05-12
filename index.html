@@ -1,1 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5月16日陈楚生南村万博轰趴床位分配</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family: "Microsoft YaHei",sans-serif;}
+        body{background:#f5f7fa;padding:20px;}
+        .box{max-width:600px;margin:0 auto;background:#fff;padding:24px;border-radius:12px;}
+        h2{text-align:center;margin-bottom:20px;color:#222;}
+        .room{padding:10px 14px;background:#eef5ff;margin:6px 0;border-radius:6px;}
+        input{width:100%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:6px;font-size:16px;}
+        button{width:100%;padding:13px;background:#409eff;color:#fff;border:none;border-radius:6px;font-size:16px;margin:6px 0;cursor:pointer;}
+        button.reset{background:#eee;color:#333;}
+        .msg{padding:14px;text-align:center;border-radius:6px;margin:12px 0;font-weight:bold;}
+        .msg.success{background:#e6fffb;color:#006666;}
+        .msg.error{background:#fff1f0;color:#c53030;}
+        .record{margin-top:16px;}
+        .record h4{margin-bottom:8px;}
+        .item{padding:8px 12px;background:#f8f9fa;margin:4px 0;border-radius:4px;}
+    </style>
+</head>
+<body>
+<div class="box">
+    <h2>5月16日陈楚生南村万博轰趴床位分配</h2>
+    <div class="room">A房 剩余：<span id="a">3</span></div>
+    <div class="room">B房 剩余：<span id="b">2</span></div>
+    <div class="room">C房 剩余：<span id="c">2</span></div>
+    <div class="room">D房 剩余：<span id="d">4</span></div>
 
+    <input type="text" id="uname" placeholder="请输入姓名" />
+    <input type="number" id="ubed" placeholder="1 或 2" min="1" max="2" />
+    <button onclick="assign()">分配床位</button>
+    <button class="reset" onclick="resetAll()">重置全部数据</button>
+
+    <div id="msg" class="msg"></div>
+    <div class="record"><h4>分配记录</h4><div id="list"></div></div>
+</div>
+
+<script>
+const API = "https://api.leancloud.cn/1.1/classes/bed_sync";
+const headers = {
+  "X-LC-Id": "ik7evvg4ikOJds6b2Ld2YbLN-gzGzoHsz",
+  "X-LC-Key": "jX1wJ0EqnynWSbD7k9jK4qVL",
+  "Content-Type": "application/json"
+};
+
+const defaultData = {
+  a: 3, b: 2, c: 2, d: 4,
+  users: [],
+  records: []
+};
+
+async function getCloudData() {
+  try {
+    let res = await fetch(API + "?limit=1", { headers });
+    let json = await res.json();
+    return json.results?.[0] || defaultData;
+  } catch (e) {
+    return defaultData;
+  }
+}
+
+async function saveCloudData(data) {
+  let old = await getCloudData();
+  let body = JSON.stringify(data);
+  try {
+    if (old.objectId) {
+      await fetch(API + "/" + old.objectId, {
+        method: "PUT", headers, body
+      });
+    } else {
+      await fetch(API, { method: "POST", headers, body });
+    }
+  } catch (e) {}
+  refresh();
+}
+
+async function refresh() {
+  let d = await getCloudData();
+  document.getElementById("a").textContent = d.a;
+  document.getElementById("b").textContent = d.b;
+  document.getElementById("c").textContent = d.c;
+  document.getElementById("d").textContent = d.d;
+  let html = "";
+  d.records.forEach(r => {
+    html += `<div class="item">${r.name} → ${r.room}房 ${r.bed}床</div>`;
+  });
+  document.getElementById("list").innerHTML = html;
+}
+
+async function assign() {
+  let name = document.getElementById("uname").value.trim();
+  let bed = parseInt(document.getElementById("ubed").value);
+  let msg = document.getElementById("msg");
+
+  if (!name) {
+    msg.textContent = "请输入姓名";
+    msg.className = "msg error";
+    return;
+  }
+  if (bed !== 1 && bed !== 2) {
+    msg.textContent = "只能输入 1 或 2";
+    msg.className = "msg error";
+    return;
+  }
+
+  let d = await getCloudData();
+  if (d.users.includes(name)) {
+    msg.textContent = "你已经分配过了";
+    msg.className = "msg error";
+    return;
+  }
+
+  let can = [];
+  if (d.a >= bed) can.push("A");
+  if (d.b >= bed) can.push("B");
+  if (d.c >= bed) can.push("C");
+  if (d.d >= bed) can.push("D");
+
+  if (can.length === 0) {
+    msg.textContent = "床位不足";
+    msg.className = "msg error";
+    return;
+  }
+
+  let room = can[Math.floor(Math.random() * can.length)];
+  d[room.toLowerCase()] -= bed;
+  d.users.push(name);
+  d.records.push({ name, room, bed });
+
+  await saveCloudData(d);
+  msg.textContent = `分配成功：${name} → ${room}房`;
+  msg.className = "msg success";
+  document.getElementById("uname").value = "";
+  document.getElementById("ubed").value = "";
+}
+
+async function resetAll() {
+  await saveCloudData(defaultData);
+  let msg = document.getElementById("msg");
+  msg.textContent = "已重置所有数据";
+  msg.className = "msg success";
+}
+
+setInterval(refresh, 2000);
+refresh();
+</script>
+</body>
+</html>
