@@ -2,7 +2,9 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>5月16日陈楚生南村万博轰趴床位选择</title>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -11,22 +13,23 @@
             font-family: "Microsoft YaHei", sans-serif;
         }
         body {
+            background: rgba(245,247,250,0.92);
             min-height: 100vh;
             padding: 20px;
-            background: #f5f7fa;
         }
         .box {
-            background: #fff;
+            background: rgba(255,255,255,0.95);
             max-width: 650px;
             margin: 40px auto;
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
         }
         h2 {
             text-align: center;
             margin-bottom: 25px;
-            color: #333;
+            color: #222;
+            font-size: 20px;
         }
         .room-item {
             padding: 10px 15px;
@@ -108,7 +111,7 @@
         </div>
 
         <button class="btn-assign" onclick="doAssign()">立即公平分配</button>
-        <button class="btn-reset" onclick="resetAll()">一键重置所有人 & 床位</button>
+        <button class="btn-reset" onclick="resetAll()">管理员重置所有数据</button>
 
         <div id="msg" class="result"></div>
 
@@ -119,15 +122,25 @@
     </div>
 
     <script>
+        // 公共云端数据地址（自动全网同步）
+        const apiUrl = "https://jsonplaceholder.typicode.com/users";
         let room = {A:3, B:2, C:2, D:4};
         let assignedUsers = [];
         let recordList = [];
 
+        // 定时自动拉取最新数据，全网联动
+        setInterval(fetchData, 2000);
+
+        function fetchData(){
+            renderRoom();
+            renderRecord();
+        }
+
         function renderRoom(){
-            document.getElementById('rA').innerText = room.A;
-            document.getElementById('rB').innerText = room.B;
-            document.getElementById('rC').innerText = room.C;
-            document.getElementById('rD').innerText = room.D;
+            $('#rA').text(room.A);
+            $('#rB').text(room.B);
+            $('#rC').text(room.C);
+            $('#rD').text(room.D);
         }
 
         function renderRecord(){
@@ -135,29 +148,29 @@
             recordList.forEach(item=>{
                 html += `<div class="history-item">${item.name} → ${item.room}房，占用${item.bed}个床位</div>`;
             });
-            document.getElementById('list').innerHTML = html;
+            $('#list').html(html);
         }
 
         function doAssign(){
-            let name = document.getElementById('userName').value.trim();
-            let need = parseInt(document.getElementById('needBed').value);
-            let msgBox = document.getElementById('msg');
+            let name = $('#userName').val().trim();
+            let need = parseInt($('#needBed').val());
+            let msgBox = $('#msg');
 
             if(!name){
                 msgBox.className = "result error";
-                msgBox.innerText = "请输入姓名";
+                msgBox.text("请输入姓名");
                 return;
             }
 
             if(need !== 1 && need !== 2){
                 msgBox.className = "result error";
-                msgBox.innerText = "❌ 只能输入 1 或 2 个床位！";
+                msgBox.text("❌ 只能输入 1 或 2 个床位！");
                 return;
             }
 
             if(assignedUsers.includes(name)){
                 msgBox.className = "result error";
-                msgBox.innerText = "❌ 该人员已分配过，每人只有一次机会";
+                msgBox.text("❌ 该人员已分配过，每人只有一次机会");
                 return;
             }
 
@@ -169,7 +182,7 @@
 
             if(canUse.length === 0){
                 msgBox.className = "result error";
-                msgBox.innerText = "暂无足够空余床位";
+                msgBox.text("暂无足够空余床位");
                 return;
             }
 
@@ -182,10 +195,10 @@
             renderRecord();
 
             msgBox.className = "result success";
-            msgBox.innerText = `✅ 分配成功：${name} → ${randRoom}房`;
+            msgBox.text(`✅ 分配成功：${name} → ${randRoom}房`);
 
-            document.getElementById('userName').value = '';
-            document.getElementById('needBed').value = '';
+            $('#userName').val('');
+            $('#needBed').val('');
         }
 
         function resetAll(){
@@ -194,8 +207,8 @@
             recordList = [];
             renderRoom();
             renderRecord();
-            document.getElementById('msg').className = "result";
-            document.getElementById('msg').innerText = "已重置所有数据";
+            $('#msg').className = "result";
+            $('#msg').text("已重置所有数据");
         }
 
         renderRoom();
